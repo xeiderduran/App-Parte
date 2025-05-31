@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parte Dependencia Plana Mayor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .form-section, .report-section {
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+            position: sticky;
+            top: 0;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .total-row {
+            font-weight: bold;
+            background-color: #e6f7ff !important;
+        }
+        .error {
+            color: red;
+            margin-top: 5px;
+        }
+        .success {
+            color: green;
+            margin-top: 5px;
+        }
+        
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            .report-container {
+                overflow-x: auto;
+            }
+            table {
+                font-size: 14px;
+            }
+        }
+        @media (max-width: 480px) {
+            .container {
+                padding: 10px;
+            }
+            input[type="text"], input[type="number"] {
+                padding: 6px;
+            }
+            button {
+                width: 100%;
+                padding: 8px;
+            }
+            th, td {
+                padding: 6px 4px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Parte Dependencia Plana Mayor</h1>
+        
+        <div class="form-section">
+            <h2>Registro de Datos</h2>
+            <form id="registrationForm">
+                <div class="form-group">
+                    <label for="dependency">Nombre de la Dependencia:</label>
+                    <input type="text" id="dependency" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="of">OF (Oficiales):</label>
+                    <input type="number" id="of" min="0" value="0" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="me">ME (Mecánicos):</label>
+                    <input type="number" id="me" min="0" value="0" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="pt">PT (Personal Técnico):</label>
+                    <input type="number" id="pt" min="0" value="0" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="pp">PP (Personal Profesional):</label>
+                    <input type="number" id="pp" min="0" value="0" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="ap">AP (Personal de Apoyo):</label>
+                    <input type="number" id="ap" min="0" value="0" required>
+                </div>
+                
+                <button type="submit">Registrar Parte</button>
+                <div id="message" class="success"></div>
+            </form>
+        </div>
+        
+        <div class="report-section">
+            <h2>Informe Detallado</h2>
+            <div class="report-container">
+                <table id="reportTable">
+                    <thead>
+                        <tr>
+                            <th>Dependencia</th>
+                            <th>OF</th>
+                            <th>ME</th>
+                            <th>PT</th>
+                            <th>PP</th>
+                            <th>AP</th>
+                            <th>Total</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportBody">
+                        <!-- Datos se insertarán aquí -->
+                    </tbody>
+                    <tfoot>
+                        <tr class="total-row">
+                            <td>Totales</td>
+                            <td id="totalOF">0</td>
+                            <td id="totalME">0</td>
+                            <td id="totalPT">0</td>
+                            <td id="totalPP">0</td>
+                            <td id="totalAP">0</td>
+                            <td id="grandTotal">0</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Cargar datos almacenados al iniciar
+            loadData();
+            
+            // Manejar el envío del formulario
+            document.getElementById('registrationForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveData();
+            });
+        });
+        
+        function loadData() {
+            const dependencies = JSON.parse(localStorage.getItem('dependencies')) || [];
+            updateReport(dependencies);
+        }
+        
+        function saveData() {
+            const dependencyName = document.getElementById('dependency').value.trim();
+            
+            if (!dependencyName) {
+                showMessage('El nombre de la dependencia es obligatorio', 'error');
+                return;
+            }
+            
+            const of = parseInt(document.getElementById('of').value) || 0;
+            const me = parseInt(document.getElementById('me').value) || 0;
+            const pt = parseInt(document.getElementById('pt').value) || 0;
+            const pp = parseInt(document.getElementById('pp').value) || 0;
+            const ap = parseInt(document.getElementById('ap').value) || 0;
+            
+            if (of < 0 || me < 0 || pt < 0 || pp < 0 || ap < 0) {
+                showMessage('Los valores no pueden ser negativos', 'error');
+                return;
+            }
+            
+            const dependencies = JSON.parse(localStorage.getItem('dependencies')) || [];
+            
+            // Verificar si la dependencia ya existe
+            const existingIndex = dependencies.findIndex(d => d.name.toLowerCase() === dependencyName.toLowerCase());
+            
+            const dependencyData = {
+                name: dependencyName,
+                of: of,
+                me: me,
+                pt: pt,
+                pp: pp,
+                ap: ap,
+                total: of + me + pt + pp + ap
+            };
+            
+            if (existingIndex !== -1) {
+                // Actualizar registro existente
+                dependencies[existingIndex] = dependencyData;
+                showMessage('Registro actualizado exitosamente', 'success');
+            } else {
+                // Agregar nuevo registro
+                dependencies.push(dependencyData);
+                showMessage('Registro guardado exitosamente', 'success');
+            }
+            
+            // Guardar en localStorage
+            localStorage.setItem('dependencies', JSON.stringify(dependencies));
+            
+            // Actualizar el informe
+            updateReport(dependencies);
+            
+            // Limpiar el formulario
+            document.getElementById('dependency').value = '';
+            document.getElementById('of').value = '0';
+            document.getElementById('me').value = '0';
+            document.getElementById('pt').value = '0';
+            document.getElementById('pp').value = '0';
+            document.getElementById('ap').value = '0';
+        }
+        
+        function updateReport(dependencies) {
+            const reportBody = document.getElementById('reportBody');
+            reportBody.innerHTML = '';
+            
+            let totalOF = 0, totalME = 0, totalPT = 0, totalPP = 0, totalAP = 0, grandTotal = 0;
+            
+            dependencies.forEach(dep => {
+                const row = document.createElement('tr');
+                
+                row.innerHTML = `
+                    <td>${dep.name}</td>
+                    <td>${dep.of}</td>
+                    <td>${dep.me}</td>
+                    <td>${dep.pt}</td>
+                    <td>${dep.pp}</td>
+                    <td>${dep.ap}</td>
+                    <td>${dep.total}</td>
+                    <td>
+                        <button onclick="editDependency('${dep.name}')">Editar</button>
+                        <button onclick="deleteDependency('${dep.name}')">Eliminar</button>
+                    </td>
+                `;
+                
+                reportBody.appendChild(row);
+                
+                // Sumar a los totales
+                totalOF += dep.of;
+                totalME += dep.me;
+                totalPT += dep.pt;
+                totalPP += dep.pp;
+                totalAP += dep.ap;
+                grandTotal += dep.total;
+            });
+            
+            // Actualizar totales
+            document.getElementById('totalOF').textContent = totalOF;
+            document.getElementById('totalME').textContent = totalME;
+            document.getElementById('totalPT').textContent = totalPT;
+            document.getElementById('totalPP').textContent = totalPP;
+            document.getElementById('totalAP').textContent = totalAP;
+            document.getElementById('grandTotal').textContent = grandTotal;
+        }
+        
+        function editDependency(name) {
+            const dependencies = JSON.parse(localStorage.getItem('dependencies')) || [];
+            const dep = dependencies.find(d => d.name === name);
+            
+            if (dep) {
+                document.getElementById('dependency').value = dep.name;
+                document.getElementById('of').value = dep.of;
+                document.getElementById('me').value = dep.me;
+                document.getElementById('pt').value = dep.pt;
+                document.getElementById('pp').value = dep.pp;
+                document.getElementById('ap').value = dep.ap;
+                
+                // Desplazar hacia el formulario
+                document.getElementById('dependency').focus();
+                showMessage('Puede editar los datos y guardar los cambios', 'success');
+            }
+        }
+        
+        function deleteDependency(name) {
+            if (confirm(`¿Está seguro que desea eliminar la dependencia "${name}"?`)) {
+                const dependencies = JSON.parse(localStorage.getItem('dependencies')) || [];
+                const filtered = dependencies.filter(d => d.name !== name);
+                
+                localStorage.setItem('dependencies', JSON.stringify(filtered));
+                updateReport(filtered);
+                showMessage('Dependencia eliminada', 'success');
+            }
+        }
+        
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = message;
+            messageDiv.className = type;
+            
+            // Ocultar el mensaje después de 3 segundos
+            setTimeout(() => {
+                messageDiv.textContent = '';
+                messageDiv.className = '';
+            }, 3000);
+        }
+    </script>
+</body>
+</html> 
